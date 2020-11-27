@@ -21,16 +21,16 @@
    GND - GND
    SCL - A5  or pin SCL on the stm32
    SDA - A4  or pin SDA on the stm32
-   
+
 
   This can be configured using the Gimbale Android application
   which is also hosted on Github
-Version 1.0: 
-Can log the data from all sensors on the eeprom and comunicate with an Android device 
-via the serial port or a bluetooth module.  
-Version 1.1
-Configure the accelero and gyro range
-Change the code so that it uses the bno055 instead of the MPU6050
+  Version 1.0:
+  Can log the data from all sensors on the eeprom and comunicate with an Android device
+  via the serial port or a bluetooth module.
+  Version 1.1
+  Configure the accelero and gyro range
+  Change the code so that it uses the bno055 instead of the MPU6050
 */
 
 
@@ -61,10 +61,11 @@ unsigned long initialTime = 0;
 unsigned long prevTime = 0;
 unsigned long diffTime;
 unsigned long currentTime = 0;
+int SX, SY;
 /*
- * ReadAltitude()
- * Read altitude and filter any nose with a Kalman filter
- */
+   ReadAltitude()
+   Read altitude and filter any nose with a Kalman filter
+*/
 double ReadAltitude()
 {
   return KalmanCalc(bmp.readAltitude());
@@ -73,7 +74,7 @@ double ReadAltitude()
 
 /*
    Initial setup
-    
+
 
 */
 void setup()
@@ -81,7 +82,7 @@ void setup()
   pinMode(pinSpeaker, OUTPUT);
   digitalWrite(pinSpeaker, LOW);
   beepAltiVersion(MAJOR_VERSION, MINOR_VERSION);
-  
+
   ServoX.attach(PA1);  // attaches the X servo on PA1 for stm32 or D10 for the Arduino Uno
   ServoY.attach(PA2);  // attaches the Y servo on PA2 for stm32 or D11 for the Arduino Uno
 
@@ -91,7 +92,7 @@ void setup()
   delay(500);
   Serial1.begin(38400);
   while (!Serial1);      // wait for Leonardo enumeration, others continue immediately // Do we need to????
-  
+
   Wire.begin();
   // clock speed is important this is the only way I could get the BNO055 sensor to work with the stm32F103 board
   Wire.setClock(400000 );
@@ -104,7 +105,7 @@ void setup()
   }
 
   delay(1000);
-  
+
   // Read altimeter softcoded configuration
   boolean softConfigValid = false;
   softConfigValid = readAltiConfig();
@@ -116,7 +117,7 @@ void setup()
     defaultConfig();
     writeConfigStruc();
   }
-  
+
 
   bmp.begin( config.altimeterResolution);
 
@@ -138,8 +139,8 @@ void setup()
   // configure LED for output
   pinMode(LED_PIN, OUTPUT);
   pinMode(INTERRUPT_PIN, INPUT);
-  
-  
+
+
   // Get flight
   int v_ret;
   v_ret = logger.readFlightList();
@@ -177,12 +178,13 @@ void Mainloop(void)
 {
   long startTime = millis();
   /* Get a new sensor event */
-  sensors_event_t linearAccelData;
-  //bno.getEvent(&event);
+  sensors_event_t linearAccelData, orientationData;
+
   bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
+  bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
   /* The WebSerial 3D Model Viewer also expects data as roll, pitch, heading */
   imu::Quaternion quat = bno.getQuat();
-  
+
   //read current altitude
   currAltitude = (ReadAltitude() - initialAltitude);
   bool lift = false;
@@ -191,8 +193,8 @@ void Mainloop(void)
       lift = true;
   }
   else { // use accelero
-   // if (mpu.getAccelerationY() > 30000)
-   //   lift = true;
+    // if (mpu.getAccelerationY() > 30000)
+    //   lift = true;
   }
 
   if ((lift && !liftOff) || (recording && !liftOff))
@@ -260,10 +262,10 @@ void Mainloop(void)
     //store start and end address
     logger.setFlightEndAddress (currentFileNbr, currentMemaddress - 1);
     logger.writeFlightList();
-   
+
   }
 
- 
+
   // blink LED to indicate activity
   blinkState = !blinkState;
   digitalWrite(LED_PIN, blinkState);
@@ -272,34 +274,38 @@ void Mainloop(void)
   //ServoX.write(-OutputX + 90);
   //ServoY.write(OutputY + 90);
 
-  // if you do not want to use the PID
-  /* ServoX.write(-mpuPitch + 90);
-   ServoY.write(mpuRoll + 90);*/
-   int SX = -mpuPitch + 180;
-   if (SX < 80) 
-    SX = 80;
-   if (SX > 100)
-    SX = 100;
-   int SY = mpuYaw + 90;
+  mpuYaw = orientationData.orientation.x;
+  mpuPitch = orientationData.orientation.y;
+  mpuRoll = orientationData.orientation.z;
 
-    if (SY < 80) 
+
+
+  // if you do not want to use the PID
+
+  SX = orientationData.orientation.y + 90; //mpuPitch + 180;
+  if (SX < 80)
+    SX = 80;
+  if (SX > 100)
+    SX = 100;
+  SY = -orientationData.orientation.z; //mpuYaw + 90;
+
+  if (SY < 80)
     SY = 80;
-   if (SY > 100)
+  if (SY > 100)
     SY = 100;
-    
-   ServoX.write(SX);
-   ServoY.write(SY);
-   /*delay(10);*/
-  
+
+  ServoX.write(SX);
+  ServoY.write(SY);
+
+
 
   float q1[4];
-  //mpu.dmpGetQuaternion(&q, fifoBuffer);
-  
-  q1[0] = quat.w();//q.w;
-  q1[1] = (float)quat.x();//q.x;
-  q1[2] = (float)quat.y(); //q.y;
-  q1[3] = (float)quat.z(); //q.z;
- 
+
+  q1[0] = quat.w();
+  q1[1] = (float)quat.x();
+  q1[2] = (float)quat.y();
+  q1[3] = (float)quat.z();
+
   //serialPrintFloatArr(q1, 4);
   SendTelemetry(q1, 200);
   checkBatVoltage(BAT_MIN_VOLTAGE);
@@ -320,11 +326,11 @@ void MainMenu()
   char readVal = ' ';
   int i = 0;
 
-  char commandbuffer[1000]="";
+  char commandbuffer[1000] = "";
 
 
   while ( readVal != ';') {
-    if(mainLoopEnable)
+    if (mainLoopEnable)
       Mainloop();
     while (Serial1.available())
     {
@@ -343,8 +349,8 @@ void MainMenu()
   }
 
   interpretCommandBuffer(commandbuffer);
-for (int i=0; i< sizeof(commandbuffer); i++)
-  commandbuffer[i]='\0';
+  for (int i = 0; i < sizeof(commandbuffer); i++)
+    commandbuffer[i] = '\0';
 }
 /*
 
@@ -470,7 +476,7 @@ void interpretCommandBuffer(char *commandbuffer) {
       Serial1.print(F("$OK;\n"));
     else
       Serial1.print(F("$KO;\n"));
-      commandbuffer="";
+    commandbuffer = "";
   }
   //reset alti config
   else if (commandbuffer[0] == 'd')
@@ -540,7 +546,7 @@ void SendTelemetry(float * arr, int freq) {
   /* Get a new sensor event */
   sensors_event_t event;
   //bno.getEvent(&event);
-  sensors_event_t orientationData , linearAccelData,angVelData;
+  sensors_event_t orientationData , linearAccelData, angVelData;
   bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
   bno.getEvent(&angVelData, Adafruit_BNO055::VECTOR_GYROSCOPE);
   bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
@@ -573,16 +579,16 @@ void SendTelemetry(float * arr, int freq) {
       //AccelZ
       Serial1.print(linearAccelData.acceleration.z);
       Serial1.print(F(","));
-      mpuYaw=orientationData.orientation.x;
+      mpuYaw = orientationData.orientation.x;
       //OrientX
       Serial1.print(mpuYaw);
       Serial1.print(F(","));
       //OrientY
-      mpuRoll =orientationData.orientation.y;
+      mpuRoll = orientationData.orientation.z;
       Serial1.print(mpuRoll); //mpuPitch
       Serial1.print(F(","));
       //OrientZ
-      mpuPitch=orientationData.orientation.z;
+      mpuPitch = orientationData.orientation.y;
       Serial1.print(mpuPitch);//mpuRoll
       Serial1.print(F(","));
 
@@ -606,14 +612,13 @@ void SendTelemetry(float * arr, int freq) {
       //tab3
       serialPrintFloatArr(arr, 4);
       //Serial1.print(F(","));
-      Serial1.print((int)(100*((float)logger.getLastFlightEndAddress()/endAddress))); 
+      Serial1.print((int)(100 * ((float)logger.getLastFlightEndAddress() / endAddress)));
       Serial1.print(F(","));
       Serial1.print((int)correct);
       Serial1.print(F(","));
-      Serial1.print(-mpuPitch + 180); // ServoX
+      Serial1.print(SX); // ServoX
       Serial1.print(F(","));
-      //Serial1.print(mpuRoll + 90); //ServoY
-      Serial1.print(mpuYaw + 90); //ServoY
+      Serial1.print(SY); //ServoY
       Serial1.println(F(";"));
     }
 }
@@ -687,7 +692,7 @@ void SendAltiConfig() {
   Serial1.print(F(","));
   Serial1.print(config.acceleroRange);
   Serial1.print(F(";\n"));
-  
+
 }
 
 
@@ -702,10 +707,10 @@ void checkBatVoltage(float minVolt) {
 
   pinMode(PB1, INPUT_ANALOG);
   int batVoltage = analogRead(PB1);
- 
+
   float bat = VOLT_DIVIDER * ((float)(batVoltage * 3300) / (float)4096000);
-  
- /* if (bat < minVolt) {
+
+  if (bat < minVolt) {
     for (int i = 0; i < 10; i++)
     {
       tone(pinSpeaker, 1600, 1000);
@@ -713,5 +718,5 @@ void checkBatVoltage(float minVolt) {
       noTone(pinSpeaker);
     }
     delay(1000);
-  }*/
+  }
 }
