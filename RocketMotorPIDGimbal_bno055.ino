@@ -31,6 +31,7 @@
   Version 1.1
   Configure the accelero and gyro range
   Change the code so that it uses the bno055 instead of the MPU6050
+  Adding checksum
 */
 
 
@@ -62,6 +63,9 @@ unsigned long prevTime = 0;
 unsigned long diffTime;
 unsigned long currentTime = 0;
 int SX, SY;
+
+  /* Get a new sensor event */
+  sensors_event_t orientationData , linearAccelData, angVelData;
 /*
    ReadAltitude()
    Read altitude and filter any nose with a Kalman filter
@@ -83,8 +87,8 @@ void setup()
   digitalWrite(pinSpeaker, LOW);
   beepAltiVersion(MAJOR_VERSION, MINOR_VERSION);
 
-  ServoX.attach(PA1);  // attaches the X servo on PA1 for stm32 or D10 for the Arduino Uno
-  ServoY.attach(PA2);  // attaches the Y servo on PA2 for stm32 or D11 for the Arduino Uno
+  ServoX.attach(PA3);  // attaches the X servo on PA1 for stm32 or D10 for the Arduino Uno
+  ServoY.attach(PA7);  // attaches the Y servo on PA2 for stm32 or D11 for the Arduino Uno
 
   // set both servo's to 90 degree
   ServoX.write(90);
@@ -104,6 +108,13 @@ void setup()
     while (1);
   }
 
+//PID
+SetpointX = 0.0;
+SetpointY = -90.0;
+myPIDX.SetOutputLimits(-5, 5);
+myPIDY.SetOutputLimits(-95, -85);
+myPIDX.SetMode(AUTOMATIC);
+myPIDY.SetMode(AUTOMATIC);
   delay(1000);
 
   // Read altimeter softcoded configuration
@@ -177,11 +188,13 @@ void loop(void)
 void Mainloop(void)
 {
   long startTime = millis();
-  /* Get a new sensor event */
-  sensors_event_t linearAccelData, orientationData;
+
 
   bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
   bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
+   //bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
+  bno.getEvent(&angVelData, Adafruit_BNO055::VECTOR_GYROSCOPE);
+  //bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
   /* The WebSerial 3D Model Viewer also expects data as roll, pitch, heading */
   imu::Quaternion quat = bno.getQuat();
 
@@ -277,18 +290,29 @@ void Mainloop(void)
   mpuYaw = orientationData.orientation.x;
   mpuPitch = orientationData.orientation.y;
   mpuRoll = orientationData.orientation.z;
+  
+  InputX = orientationData.orientation.y;
+  myPIDX.Compute();
+  InputY = orientationData.orientation.z;
+  myPIDY.Compute();
 
-
-
+/*Serial1.print(OutputX);
+Serial1.print("   ");
+Serial1.println(orientationData.orientation.y);
+Serial1.print(OutputY);
+Serial1.print("   ");
+Serial1.println(orientationData.orientation.z);*/
   // if you do not want to use the PID
 
-  SX = orientationData.orientation.y + 90; //mpuPitch + 180;
+  SX = orientationData.orientation.y + 90; 
+ //SX = OutputX +90;
   if (SX < 80)
     SX = 80;
   if (SX > 100)
     SX = 100;
-  SY = -orientationData.orientation.z; //mpuYaw + 90;
-
+    
+  SY = -orientationData.orientation.z; 
+//SY = -OutputY;
   if (SY < 80)
     SY = 80;
   if (SY > 100)
@@ -542,14 +566,9 @@ void SendTelemetry(float * arr, int freq) {
   float currAltitude;
   float temperature;
   int pressure;
-  //imu::Quaternion quat = bno.getQuat();
-  /* Get a new sensor event */
-  sensors_event_t event;
-  //bno.getEvent(&event);
-  sensors_event_t orientationData , linearAccelData, angVelData;
-  bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
-  bno.getEvent(&angVelData, Adafruit_BNO055::VECTOR_GYROSCOPE);
-  bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
+
+  String myTelemetry="";
+  
   //float batVoltage;
   if (last_telem_time - millis() > freq)
     if (telemetryEnable) {
@@ -557,69 +576,104 @@ void SendTelemetry(float * arr, int freq) {
       pressure = bmp.readPressure();
       temperature = bmp.readTemperature();
       last_telem_time = millis();
-      Serial1.print(F("$telemetry,"));
-      Serial1.print("RocketMotorGimbal_bno055");
-      Serial1.print(F(","));
+      //Serial1.print(F("$telemetry,"));
+      //Serial1.print("RocketMotorGimbal_bno055");
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry + "telemetry,RocketMotorGimbal_bno055,";
       //tab 1
       //GyroX
-      Serial1.print(angVelData.gyro.x);
-      Serial1.print(F(","));
+      //Serial1.print(angVelData.gyro.x);
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry + angVelData.gyro.x+ ",";
       //GyroY
-      Serial1.print(angVelData.gyro.y);
-      Serial1.print(F(","));
+      //Serial1.print(angVelData.gyro.y);
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry +angVelData.gyro.y + ",";
       //GyroZ
-      Serial1.print(angVelData.gyro.z);
-      Serial1.print(F(","));
+      //Serial1.print(angVelData.gyro.z);
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry +angVelData.gyro.z + ",";
       //AccelX
-      Serial1.print(linearAccelData.acceleration.x);
-      Serial1.print(F(","));
+      //Serial1.print(linearAccelData.acceleration.x);
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry +linearAccelData.acceleration.x + ",";
       //AccelY
-      Serial1.print(linearAccelData.acceleration.y);
-      Serial1.print(F(","));
+      //Serial1.print(linearAccelData.acceleration.y);
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry +linearAccelData.acceleration.y + ",";
       //AccelZ
-      Serial1.print(linearAccelData.acceleration.z);
-      Serial1.print(F(","));
-      mpuYaw = orientationData.orientation.x;
+      //Serial1.print(linearAccelData.acceleration.z);
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry +linearAccelData.acceleration.z + ",";
       //OrientX
-      Serial1.print(mpuYaw);
-      Serial1.print(F(","));
+      mpuYaw = orientationData.orientation.x;
+      //Serial1.print(mpuYaw);
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry +mpuYaw + ",";
       //OrientY
       mpuRoll = orientationData.orientation.z;
-      Serial1.print(mpuRoll); //mpuPitch
-      Serial1.print(F(","));
+      //Serial1.print(mpuRoll); //mpuPitch
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry +mpuRoll + ",";
       //OrientZ
       mpuPitch = orientationData.orientation.y;
-      Serial1.print(mpuPitch);//mpuRoll
-      Serial1.print(F(","));
-
+      //Serial1.print(mpuPitch);//mpuRoll
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry + mpuPitch+ ",";
       //tab 2
       //Altitude
-      Serial1.print(currAltitude);
-      Serial1.print(F(","));
+      //Serial1.print(currAltitude);
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry +currAltitude + ",";
       //temperature
-      Serial1.print(temperature);
-      Serial1.print(F(","));
+      //Serial1.print(temperature);
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry +temperature + ",";
       //Pressure
-      Serial1.print(pressure);
-      Serial1.print(F(","));
+      //Serial1.print(pressure);
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry + pressure+ ",";
       //Batt voltage
       pinMode(PB1, INPUT_ANALOG);
       int batVoltage = analogRead(PB1);
       // Serial1.print(batVoltage);
       float bat = VOLT_DIVIDER * ((float)(batVoltage * 3300) / (float)4096000);
-      Serial1.print(bat);
-      Serial1.print(F(","));
-      //tab3
-      serialPrintFloatArr(arr, 4);
+      //Serial1.print(bat);
       //Serial1.print(F(","));
-      Serial1.print((int)(100 * ((float)logger.getLastFlightEndAddress() / endAddress)));
-      Serial1.print(F(","));
-      Serial1.print((int)correct);
-      Serial1.print(F(","));
-      Serial1.print(SX); // ServoX
-      Serial1.print(F(","));
-      Serial1.print(SY); //ServoY
-      Serial1.println(F(";"));
+      myTelemetry = myTelemetry +bat + ",";
+      //tab3
+      //serialPrintFloatArr(arr, 4);
+      char temp [9]="";
+      floatToByte(arr[0], temp);
+      myTelemetry = myTelemetry + temp + ",";
+      floatToByte(arr[1], temp);
+      myTelemetry = myTelemetry + temp + ",";
+      floatToByte(arr[2], temp);
+      myTelemetry = myTelemetry + temp + ",";
+      floatToByte(arr[3], temp);
+      myTelemetry = myTelemetry + temp + ",";
+      //Serial1.print(F(","));
+      //Serial1.print((int)(100 * ((float)logger.getLastFlightEndAddress() / endAddress)));
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry + (int)(100 * ((float)logger.getLastFlightEndAddress() / endAddress)) + ",";
+      //Serial1.print((int)correct);
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry + (int)correct + ",";
+      //Serial1.print(SX); // ServoX
+      //Serial1.print(F(","));
+      myTelemetry = myTelemetry +SX + ",";
+      //Serial1.print(SY); //ServoY
+      //Serial1.println(F(";"));
+      myTelemetry = myTelemetry +SY +",";//+ ";";
+      
+      String checkCal = myTelemetry;
+      checkCal.replace(",","");
+      char msg[checkCal.length() + 1];
+      checkCal.toCharArray(msg, checkCal.length() + 1);
+      unsigned int chk;
+      chk = msgChk(msg, sizeof(msg));
+      myTelemetry = myTelemetry + chk + ";";
+      Serial1.println("$"+myTelemetry);
     }
 }
 
@@ -630,69 +684,98 @@ void SendTelemetry(float * arr, int freq) {
 */
 void SendAltiConfig() {
   bool ret = readAltiConfig();
-
-  Serial1.print(F("$alticonfig"));
-  Serial1.print(F(","));
+String myconfig= "";
+ // Serial1.print(F("$alticonfig"));
+ // Serial1.print(F(","));
+  myconfig = myconfig + "$alticonfig,";
   //AltimeterName
-  Serial1.print("RocketMotorGimbal_bno055");
-  Serial1.print(F(","));
-  Serial1.print(config.ax_offset);
-  Serial1.print(F(","));
-  Serial1.print(config.ay_offset);
-  Serial1.print(F(","));
-  Serial1.print(config.az_offset);
-  Serial1.print(F(","));
-  Serial1.print(config.gx_offset);
-  Serial1.print(F(","));
-  Serial1.print(config.gy_offset);
-  Serial1.print(F(","));
-  Serial1.print(config.gz_offset);
-  Serial1.print(F(","));
-  Serial1.print(config.KpX);
-  Serial1.print(F(","));
-  Serial1.print(config.KiX);
-  Serial1.print(F(","));
-  Serial1.print(config.KdX);
-  Serial1.print(F(","));
-  Serial1.print(config.KpY);
-  Serial1.print(F(","));
-  Serial1.print(config.KiY);
-  Serial1.print(F(","));
-  Serial1.print(config.KdY);
-  Serial1.print(F(","));
-  Serial1.print(config.ServoXMin);
-  Serial1.print(F(","));
-  Serial1.print(config.ServoXMax);
-  Serial1.print(F(","));
-  Serial1.print(config.ServoYMin);
-  Serial1.print(F(","));
-  Serial1.print(config.ServoYMax);
-  Serial1.print(F(","));
-  Serial1.print(config.connectionSpeed);
-  Serial1.print(F(","));
-  Serial1.print(config.altimeterResolution);
-  Serial1.print(F(","));
-  Serial1.print(config.eepromSize);
-  Serial1.print(F(","));
+ // Serial1.print("RocketMotorGimbal_bno055");
+ // Serial1.print(F(","));
+  myconfig = myconfig + "RocketMotorGimbal_bno055,";
+ // Serial1.print(config.ax_offset);
+  //Serial1.print(F(","));
+  myconfig = myconfig +config.ax_offset +",";
+  //Serial1.print(config.ay_offset);
+  //Serial1.print(F(","));
+  myconfig = myconfig +config.ay_offset +",";
+ // Serial1.print(config.az_offset);
+  //Serial1.print(F(","));
+  myconfig = myconfig +config.az_offset +",";
+  //Serial1.print(config.gx_offset);
+  //Serial1.print(F(","));
+  myconfig = myconfig + config.gx_offset+",";
+  //Serial1.print(config.gy_offset);
+  //Serial1.print(F(","));
+  myconfig = myconfig +config.gy_offset +",";
+  //Serial1.print(config.gz_offset);
+  //Serial1.print(F(","));
+  myconfig = myconfig +config.gz_offset +",";
+  //Serial1.print(config.KpX);
+  //Serial1.print(F(","));
+  myconfig = myconfig +config.KpX +",";
+  //Serial1.print(config.KiX);
+  //Serial1.print(F(","));
+  myconfig = myconfig + config.KiX+",";
+  //Serial1.print(config.KdX);
+  //Serial1.print(F(","));
+  myconfig = myconfig +config.KdX +",";
+  //Serial1.print(config.KpY);
+  //Serial1.print(F(","));
+  myconfig = myconfig +config.KpY +",";
+  //Serial1.print(config.KiY);
+  //Serial1.print(F(","));
+  myconfig = myconfig + config.KiY+",";
+  //Serial1.print(config.KdY);
+  //Serial1.print(F(","));
+  myconfig = myconfig + config.KdY+",";
+  //Serial1.print(config.ServoXMin);
+  //Serial1.print(F(","));
+  myconfig = myconfig +config.ServoXMin +",";
+  //Serial1.print(config.ServoXMax);
+  //Serial1.print(F(","));
+  myconfig = myconfig +config.ServoXMax +",";
+  //Serial1.print(config.ServoYMin);
+  //Serial1.print(F(","));
+  myconfig = myconfig +config.ServoYMin +",";
+  //Serial1.print(config.ServoYMax);
+  //Serial1.print(F(","));
+  myconfig = myconfig +config.ServoYMax +",";
+  //Serial1.print(config.connectionSpeed);
+  //Serial1.print(F(","));
+  myconfig = myconfig + config.connectionSpeed +",";
+  //Serial1.print(config.altimeterResolution);
+  //Serial1.print(F(","));
+  myconfig = myconfig + config.altimeterResolution +",";
+  //Serial1.print(config.eepromSize);
+  //Serial1.print(F(","));
+  myconfig = myconfig +config.eepromSize +",";
   //alti major version
-  Serial1.print(MAJOR_VERSION);
+  //Serial1.print(MAJOR_VERSION);
   //alti minor version
-  Serial1.print(F(","));
-  Serial1.print(MINOR_VERSION);
-  Serial1.print(F(","));
-  Serial1.print(config.unit);
-  Serial1.print(F(","));
-  Serial1.print(config.endRecordAltitude);
-  Serial1.print(F(","));
-  Serial1.print(config.beepingFrequency);
-  Serial1.print(F(","));
-  Serial1.print(config.liftOffDetect);
-  Serial1.print(F(","));
-  Serial1.print(config.gyroRange);
-  Serial1.print(F(","));
-  Serial1.print(config.acceleroRange);
-  Serial1.print(F(";\n"));
-
+ // Serial1.print(F(","));
+  myconfig = myconfig + MAJOR_VERSION+",";
+  //Serial1.print(MINOR_VERSION);
+  //Serial1.print(F(","));
+  myconfig = myconfig +MINOR_VERSION +",";
+ // Serial1.print(config.unit);
+  //Serial1.print(F(","));
+  myconfig = myconfig +config.unit +",";
+  //Serial1.print(config.endRecordAltitude);
+  //Serial1.print(F(","));
+  myconfig = myconfig + config.endRecordAltitude +",";
+  //Serial1.print(config.beepingFrequency);
+  //Serial1.print(F(","));
+  myconfig = myconfig + config.beepingFrequency +",";
+  //Serial1.print(config.liftOffDetect);
+  //Serial1.print(F(","));
+  myconfig = myconfig + config.liftOffDetect +",";
+  //Serial1.print(config.gyroRange);
+  //Serial1.print(F(","));
+  myconfig = myconfig + config.gyroRange +",";
+  //Serial1.print(config.acceleroRange);
+  //Serial1.print(F(";\n"));
+  myconfig = myconfig + config.acceleroRange + ";\n";
+Serial1.print(myconfig);
 }
 
 
@@ -705,7 +788,7 @@ void SendAltiConfig() {
 */
 void checkBatVoltage(float minVolt) {
 
-  pinMode(PB1, INPUT_ANALOG);
+ /* pinMode(PB1, INPUT_ANALOG);
   int batVoltage = analogRead(PB1);
 
   float bat = VOLT_DIVIDER * ((float)(batVoltage * 3300) / (float)4096000);
@@ -718,5 +801,5 @@ void checkBatVoltage(float minVolt) {
       noTone(pinSpeaker);
     }
     delay(1000);
-  }
+  }*/
 }

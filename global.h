@@ -40,17 +40,22 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gra
 
 // PID stuff
 //Define Variables we'll be connecting to
-double SetpointX, InputX, OutputX;
-double SetpointY, InputY, OutputY;
+double SetpointX=0, InputX, OutputX;
+double SetpointY=-90, InputY, OutputY;
 
 // Those initial tuning parameters need to be tuned
 // this is a bit like when you tune your copter appart from the fact that the rocket motor last only few seconds
 // please help !!!!!!!
 //double KpX = 2, KiX = 5, KdX = 1;
-double KpX = 3.55, KiX = 0.005, KdX = 2.05;
+//double KpX = 3.55, KiX = 0.005, KdX = 2.05;
+double KpX =0.09, KiX = 0.06, KdX = 0.0275;
+
 //Specify the links and initial tuning parameters
 //double KpY = 2, KiY = 5, KdY = 1;
-double KpY = 3.55, KiY = 0.005, KdY = 2.05;
+//double KpY = 3.55, KiY = 0.005, KdY = 2.05;
+double KpY =0.09, KiY = 0.06, KdY = 0.0275;
+//SetpointX = 0.0;
+//SetpointY = -90.O;
 PID myPIDX(&InputX, &OutputX, &SetpointX, KpX, KiX, KdX, DIRECT);
 PID myPIDY(&InputY, &OutputY, &SetpointY, KpY, KiY, KdY, DIRECT);
 
