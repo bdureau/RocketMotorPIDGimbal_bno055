@@ -180,7 +180,12 @@ void logger_I2C_eeprom::PrintFlight(int flightNbr)
       i = readFlight(i) + 1;
 
       currentTime = currentTime + getFlightTimeData();
-      Serial1.print("$" + String("data,") + String(flightNbr) + "," + String(currentTime) + "," + String(getFlightAltitudeData()) + ",");
+      //Serial1.print("$" + String("data,") + String(flightNbr) + "," + String(currentTime) + "," + String(getFlightAltitudeData()) + ",");
+      Serial1.print("$data,");
+      Serial1.print(flightNbr + ",");
+      Serial1.print(currentTime + ",");
+      Serial1.print(getFlightAltitudeData() + ",");
+      
       Serial1.print(_FlightData.temperature);
       Serial1.print(",");
       Serial1.print(_FlightData.pressure);
@@ -221,7 +226,11 @@ void logger_I2C_eeprom::printFlightData(int flightNbr)
       currentTime = currentTime + getFlightTimeData();
       //long pos[4];
       //getFlightRocketPos(pos);
-      Serial1.print("$" + String("data,") + String(flightNbr) + "," + String(currentTime) + "," + String(getFlightAltitudeData()) + ",");
+      //Serial1.print("$" + String("data,") + String(flightNbr) + "," + String(currentTime) + "," + String(getFlightAltitudeData()) + ",");
+      Serial1.print("$data,");
+      Serial1.print(flightNbr + ",");
+      Serial1.print(currentTime + ",");
+      Serial1.print(getFlightAltitudeData() + ",");
       Serial1.print(_FlightData.temperature);
       Serial1.print(",");
       Serial1.print(_FlightData.pressure);
