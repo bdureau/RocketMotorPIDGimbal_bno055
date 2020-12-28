@@ -68,7 +68,6 @@ boolean readAltiConfig() {
 *
 */
 bool  writeAltiConfig( char *p ) {
-//Serial1.println(p);
   char *str;
 
   int i=0;
@@ -76,7 +75,6 @@ bool  writeAltiConfig( char *p ) {
   char msg[100]="";
   while ((str = strtok_r(p, ",", &p)) != NULL) // delimiter is the comma
   {
-    //Serial1.println(str);
     switch (i)
     {
     case 1:
@@ -182,7 +180,6 @@ bool  writeAltiConfig( char *p ) {
     case 26:
       //our checksum
       strChk= atoi(str);
-      //strcat(msg, str);
       break; 
     }
     i++;
@@ -203,13 +200,10 @@ bool  writeAltiConfig( char *p ) {
 
 unsigned int msgChk( char * buffer, long length ) {
 
-     //static char tBuf[4];
      long index;
      unsigned int checksum;
 
      for( index = 0L, checksum = 0; index < length; checksum += (unsigned int) buffer[index++] );
-     //sprintf( tBuf, "%3d", (unsigned int) ( checksum % 256 ) );
-     //return( tBuf );
      return (unsigned int) ( checksum % 256 );
 
 }
@@ -231,12 +225,9 @@ void longBeep()
 }
 void shortBeep()
 {
- // if (NoBeep == false)
-  //{
     tone(pinSpeaker, 440, 25);
     delay(300);
     noTone(pinSpeaker);
-  //}
 }
 void beepAltiVersion (int majorNbr, int minorNbr)
 {

@@ -161,7 +161,7 @@ long logger_I2C_eeprom::getFlightAltitudeData()
   return _FlightData.altitude;
 }
 
-void logger_I2C_eeprom::PrintFlight(int flightNbr)
+/*void logger_I2C_eeprom::PrintFlight(int flightNbr)
 {
   long startaddress;
   long endaddress;
@@ -204,9 +204,100 @@ void logger_I2C_eeprom::PrintFlight(int flightNbr)
   }
   else
     Serial1.println(F("No such flight\n"));
-}
-
+}*/
 void logger_I2C_eeprom::printFlightData(int flightNbr)
+{
+  int startaddress;
+  int endaddress;
+  long flight_type;
+  startaddress = getFlightStart(flightNbr);
+  endaddress = getFlightStop(flightNbr);
+
+  if (startaddress > 200)
+  {
+    int i = startaddress;
+    unsigned long currentTime = 0;
+
+    while (i < (endaddress + 1))
+    {
+      i = readFlight(i) + 1;
+      char flightData[150]="";
+      char temp[9]="";
+      currentTime = currentTime + getFlightTimeData();
+      //Serial1.print("$data,");
+      strcat(flightData, "data,");
+      //Serial1.print(flightNbr + ",");
+      sprintf(temp, "%i,",flightNbr );
+       strcat(flightData,temp);
+      //Serial1.print(currentTime + ",");
+       sprintf(temp, "%i,",currentTime );
+       strcat(flightData,temp);
+      //Serial1.print(getFlightAltitudeData() + ",");
+      sprintf(temp, "%i,",getFlightAltitudeData() );
+      strcat(flightData,temp);
+      
+      //Serial1.print(_FlightData.temperature);
+      //Serial1.print(",");
+      sprintf(temp, "%i,",_FlightData.temperature );
+      strcat(flightData,temp);
+      
+      //Serial1.print(_FlightData.pressure);
+      //Serial1.print(",");
+      sprintf(temp, "%i,",_FlightData.pressure );
+      strcat(flightData,temp);
+      
+      floatToByte((float)(_FlightData.w)/1000,temp);
+      //Serial1.print(temp); 
+      //Serial1.print(",");
+      strcat(flightData,temp);
+      strcat(flightData,",");
+      floatToByte((float)(_FlightData.x)/1000,temp);
+      //Serial1.print(temp); 
+      //Serial1.print(",");
+      strcat(flightData,temp);
+      strcat(flightData,",");
+      
+      floatToByte((float)(_FlightData.y)/1000,temp);
+     // Serial1.print(temp); 
+      //Serial1.print(",");
+      strcat(flightData,temp);
+      strcat(flightData,",");
+      floatToByte((float)(_FlightData.z)/1000,temp);
+      //Serial1.print(temp); 
+      //Serial1.print(",");
+      strcat(flightData,temp);
+      strcat(flightData,",");
+      
+      //Serial1.print(_FlightData.OutputX);
+      //Serial1.print(",");
+      sprintf(temp, "%i,",_FlightData.OutputX );
+      strcat(flightData,temp);
+      
+      //Serial1.print(_FlightData.OutputY);
+      //Serial1.print(",");
+      sprintf(temp, "%i,",_FlightData.OutputY );
+      strcat(flightData,temp);
+      //Serial1.print(_FlightData.accelX);
+      //Serial1.print(",");
+      sprintf(temp, "%i,",_FlightData.accelX );
+      strcat(flightData,temp);
+      //Serial1.print(_FlightData.accelY);
+      //Serial1.print(",");
+      sprintf(temp, "%i,",_FlightData.accelY );
+      strcat(flightData,temp);
+      //Serial1.print(_FlightData.accelZ);
+      sprintf(temp, "%i,",_FlightData.accelZ );
+      strcat(flightData,temp);
+      unsigned int chk = msgChk(flightData, sizeof(flightData));
+      sprintf(temp, "%i", chk);
+      strcat(flightData, temp);
+      strcat(flightData, ";\n");
+      Serial1.print("$");
+      Serial1.print(flightData);
+    }
+  }
+}
+/*void logger_I2C_eeprom::printFlightData(int flightNbr)
 {
   int startaddress;
   int endaddress;
@@ -264,7 +355,7 @@ void logger_I2C_eeprom::printFlightData(int flightNbr)
       Serial1.println(";");
     }
   }
-}
+}*/
 long logger_I2C_eeprom::getSizeOfFlightData()
 {
   return sizeof(_FlightData);

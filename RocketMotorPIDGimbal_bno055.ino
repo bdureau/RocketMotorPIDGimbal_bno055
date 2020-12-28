@@ -63,10 +63,10 @@ unsigned long prevTime = 0;
 unsigned long diffTime;
 unsigned long currentTime = 0;
 int SX, SY;
-//void checkBatVoltage(float minVolt);
 
-  /* Get a new sensor event */
-  sensors_event_t orientationData , linearAccelData, angVelData;
+/* Get a new sensor event */
+sensors_event_t orientationData , linearAccelData, angVelData;
+
 /*
    ReadAltitude()
    Read altitude and filter any nose with a Kalman filter
@@ -79,7 +79,6 @@ double ReadAltitude()
 
 /*
    Initial setup
-
 
 */
 void setup()
@@ -109,13 +108,13 @@ void setup()
     while (1);
   }
 
-//PID
-SetpointX = 0.0;
-SetpointY = -90.0;
-myPIDX.SetOutputLimits(-5, 5);
-myPIDY.SetOutputLimits(-95, -85);
-myPIDX.SetMode(AUTOMATIC);
-myPIDY.SetMode(AUTOMATIC);
+  //PID
+  SetpointX = 0.0;
+  SetpointY = -90.0;
+  myPIDX.SetOutputLimits(-5, 5);
+  myPIDY.SetOutputLimits(-95, -85);
+  myPIDX.SetMode(AUTOMATIC);
+  myPIDY.SetMode(AUTOMATIC);
   delay(1000);
 
   // Read altimeter softcoded configuration
@@ -193,9 +192,7 @@ void Mainloop(void)
 
   bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
   bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
-   //bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
   bno.getEvent(&angVelData, Adafruit_BNO055::VECTOR_GYROSCOPE);
-  //bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
   /* The WebSerial 3D Model Viewer also expects data as roll, pitch, heading */
   imu::Quaternion quat = bno.getQuat();
 
@@ -248,15 +245,15 @@ void Mainloop(void)
     logger.setFlightTemperatureData((long) bmp.readTemperature());
     logger.setFlightPressureData((long) bmp.readPressure());
 
-    float w = (float)quat.w();//q.w;
-    float x = (float)quat.x(); //q.x;
-    float y = (float)quat.y(); //q.y;
-    float z = (float)quat.z(); //q.z;
+    float w = (float)quat.w();
+    float x = (float)quat.x(); 
+    float y = (float)quat.y(); 
+    float z = (float)quat.z(); 
 
     logger.setFlightRocketPos((long) (w * 1000), (long) (x * 1000), (long) (y * 1000), (long) (z * 1000));
     logger.setFlightCorrection( (long) OutputX, (long)OutputY);
     logger.setAcceleration(linearAccelData.acceleration.x, linearAccelData.acceleration.y, linearAccelData.acceleration.z);
-    //logger.setAcceleration(0,0,0);
+
     if ( (currentMemaddress + logger.getSizeOfFlightData())  > endAddress) {
       //flight is full let save it
       //save end address
@@ -288,32 +285,32 @@ void Mainloop(void)
   //ServoX.write(-OutputX + 90);
   //ServoY.write(OutputY + 90);
 
-  mpuYaw = orientationData.orientation.x;
+  /*mpuYaw = orientationData.orientation.x;
   mpuPitch = orientationData.orientation.y;
-  mpuRoll = orientationData.orientation.z;
-  
+  mpuRoll = orientationData.orientation.z;*/
+
   InputX = orientationData.orientation.y;
   myPIDX.Compute();
   InputY = orientationData.orientation.z;
   myPIDY.Compute();
 
-/*Serial1.print(OutputX);
-Serial1.print("   ");
-Serial1.println(orientationData.orientation.y);
-Serial1.print(OutputY);
-Serial1.print("   ");
-Serial1.println(orientationData.orientation.z);*/
+  /*Serial1.print(OutputX);
+    Serial1.print("   ");
+    Serial1.println(orientationData.orientation.y);
+    Serial1.print(OutputY);
+    Serial1.print("   ");
+    Serial1.println(orientationData.orientation.z);*/
   // if you do not want to use the PID
 
-  SX = orientationData.orientation.y + 90; 
- //SX = OutputX +90;
+  SX = orientationData.orientation.y + 90;
+  //SX = OutputX +90;
   if (SX < 80)
     SX = 80;
   if (SX > 100)
     SX = 100;
-    
-  SY = -orientationData.orientation.z; 
-//SY = -OutputY;
+
+  SY = -orientationData.orientation.z;
+  //SY = -OutputY;
   if (SY < 80)
     SY = 80;
   if (SY > 100)
@@ -569,7 +566,7 @@ void interpretCommandBuffer(char *commandbuffer) {
   int pressure;
 
   String myTelemetry="";
-  
+
   //float batVoltage;
   if (last_telem_time - millis() > freq)
     if (telemetryEnable) {
@@ -666,7 +663,7 @@ void interpretCommandBuffer(char *commandbuffer) {
       //Serial1.print(SY); //ServoY
       //Serial1.println(F(";"));
       myTelemetry = myTelemetry +SY +",";//+ ";";
-      
+
       String checkCal = myTelemetry;
       checkCal.replace(",","");
       char msg[checkCal.length() + 1];
@@ -676,7 +673,7 @@ void interpretCommandBuffer(char *commandbuffer) {
       myTelemetry = myTelemetry + chk + ";";
       Serial1.println("$"+myTelemetry);
     }
-}
+  }
 */
 void SendTelemetry(float * arr, int freq) {
 
@@ -684,8 +681,8 @@ void SendTelemetry(float * arr, int freq) {
   float temperature;
   int pressure;
 
-  char myTelemetry[300]="";
-  
+  char myTelemetry[300] = "";
+
   //float batVoltage;
   if (last_telem_time - millis() > freq)
     if (telemetryEnable) {
@@ -698,94 +695,94 @@ void SendTelemetry(float * arr, int freq) {
       //GyroX
       char temp[10];
       sprintf(temp, "%f", angVelData.gyro.x);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //GyroY
       sprintf(temp, "%f", angVelData.gyro.y);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //GyroZ
       sprintf(temp, "%f", angVelData.gyro.z);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //AccelX
       sprintf(temp, "%f", linearAccelData.acceleration.x);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //AccelY
       sprintf(temp, "%f", linearAccelData.acceleration.y);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //AccelZ
       sprintf(temp, "%f", linearAccelData.acceleration.z);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //OrientX
       sprintf(temp, "%f", orientationData.orientation.x);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //OrientY
       sprintf(temp, "%f", orientationData.orientation.z);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //OrientZ
       sprintf(temp, "%f", orientationData.orientation.y);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //tab 2
       //Altitude
       sprintf(temp, "%i", currAltitude);
-      strcat( myTelemetry , temp); 
-      strcat( myTelemetry, ","); 
+      strcat( myTelemetry , temp);
+      strcat( myTelemetry, ",");
       //temperature
       sprintf(temp, "%i", temperature);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //Pressure
       sprintf(temp, "%i", pressure);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //Batt voltage
       pinMode(PB1, INPUT_ANALOG);
       int batVoltage = analogRead(PB1);
       float bat = VOLT_DIVIDER * ((float)(batVoltage * 3300) / (float)4096000);
       sprintf(temp, "%f", bat);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //tab3
       floatToByte(arr[0], temp);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       floatToByte(arr[1], temp);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       floatToByte(arr[2], temp);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       floatToByte(arr[3], temp);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
-      
+
       sprintf(temp, "%i", (int)(100 * ((float)logger.getLastFlightEndAddress() / endAddress)));
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
-  
+
       sprintf(temp, "%i", (int)correct);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
 
       sprintf(temp, "%i", SX);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
 
       sprintf(temp, "%i", SY);
-      strcat( myTelemetry , temp); 
+      strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
-      
+
       unsigned int chk;
       chk = msgChk(myTelemetry, sizeof(myTelemetry));
       sprintf(temp, "%i", chk);
-      strcat(myTelemetry,temp);
+      strcat(myTelemetry, temp);
       strcat(myTelemetry, ";");
       Serial1.print("$");
       Serial1.println(myTelemetry);
@@ -799,21 +796,21 @@ void SendTelemetry(float * arr, int freq) {
 /*void SendAltiConfig() {
   bool ret = readAltiConfig();
   Serial1.print(F("$alticonfig"));
- Serial1.print(F(","));
+  Serial1.print(F(","));
   //AltimeterName
- Serial1.print("RocketMotorGimbal_bno055");
- Serial1.print(F(","));
- Serial1.print(config.ax_offset);
- Serial1.print(F(","));
- Serial1.print(config.ay_offset);
- Serial1.print(F(","));
- Serial1.print(config.az_offset);
- Serial1.print(F(","));
- Serial1.print(config.gx_offset);
- Serial1.print(F(","));
+  Serial1.print("RocketMotorGimbal_bno055");
+  Serial1.print(F(","));
+  Serial1.print(config.ax_offset);
+  Serial1.print(F(","));
+  Serial1.print(config.ay_offset);
+  Serial1.print(F(","));
+  Serial1.print(config.az_offset);
+  Serial1.print(F(","));
+  Serial1.print(config.gx_offset);
+  Serial1.print(F(","));
 
- Serial1.print(config.gy_offset);
- Serial1.print(F(","));
+  Serial1.print(config.gy_offset);
+  Serial1.print(F(","));
   Serial1.print(config.gz_offset);
   Serial1.print(F(","));
 
@@ -852,53 +849,53 @@ void SendTelemetry(float * arr, int freq) {
 
   Serial1.print(config.altimeterResolution);
   Serial1.print(F(","));
- 
+
   Serial1.print(config.eepromSize);
   Serial1.print(F(","));
 
   //alti major version
   Serial1.print(MAJOR_VERSION);
   //alti minor version
- Serial1.print(F(","));
+  Serial1.print(F(","));
   Serial1.print(MINOR_VERSION);
   Serial1.print(F(","));
 
- Serial1.print(config.unit);
+  Serial1.print(config.unit);
   Serial1.print(F(","));
 
   Serial1.print(config.endRecordAltitude);
   Serial1.print(F(","));
- 
+
   Serial1.print(config.beepingFrequency);
   Serial1.print(F(","));
-  
+
   Serial1.print(config.liftOffDetect);
   Serial1.print(F(","));
- 
+
   Serial1.print(config.gyroRange);
   Serial1.print(F(","));
-  
+
   Serial1.print(config.acceleroRange);
   Serial1.print(F(";\n"));
 
-}*/
+  }*/
 /*void SendAltiConfig() {
   bool ret = readAltiConfig();
-String myconfig= "";
- // Serial1.print(F("$alticonfig"));
- // Serial1.print(F(","));
+  String myconfig= "";
+  // Serial1.print(F("$alticonfig"));
+  // Serial1.print(F(","));
   myconfig = myconfig + "$alticonfig,";
   //AltimeterName
- // Serial1.print("RocketMotorGimbal_bno055");
- // Serial1.print(F(","));
+  // Serial1.print("RocketMotorGimbal_bno055");
+  // Serial1.print(F(","));
   myconfig = myconfig + "RocketMotorGimbal_bno055,";
- // Serial1.print(config.ax_offset);
+  // Serial1.print(config.ax_offset);
   //Serial1.print(F(","));
   myconfig = myconfig +config.ax_offset +",";
   //Serial1.print(config.ay_offset);
   //Serial1.print(F(","));
   myconfig = myconfig +config.ay_offset +",";
- // Serial1.print(config.az_offset);
+  // Serial1.print(config.az_offset);
   //Serial1.print(F(","));
   myconfig = myconfig +config.az_offset +",";
   //Serial1.print(config.gx_offset);
@@ -952,12 +949,12 @@ String myconfig= "";
   //alti major version
   //Serial1.print(MAJOR_VERSION);
   //alti minor version
- // Serial1.print(F(","));
+  // Serial1.print(F(","));
   myconfig = myconfig + MAJOR_VERSION+",";
   //Serial1.print(MINOR_VERSION);
   //Serial1.print(F(","));
   myconfig = myconfig +MINOR_VERSION +",";
- // Serial1.print(config.unit);
+  // Serial1.print(config.unit);
   //Serial1.print(F(","));
   myconfig = myconfig +config.unit +",";
   //Serial1.print(config.endRecordAltitude);
@@ -975,125 +972,130 @@ String myconfig= "";
   //Serial1.print(config.acceleroRange);
   //Serial1.print(F(";\n"));
   myconfig = myconfig + config.acceleroRange + ";\n";
-Serial1.print(myconfig);
-}*/
+  Serial1.print(myconfig);
+  }*/
 
 void SendAltiConfig() {
   bool ret = readAltiConfig();
-  char myconfig [300]= "";
+  char myconfig [300] = "";
 
-  strcat(myconfig , "$alticonfig,");
+  strcat(myconfig , "alticonfig,");
   //AltimeterName
   strcat(myconfig , "RocketMotorGimbal_bno055,");
   char temp [10];
   sprintf(temp, "%i", config.ax_offset);
-  strcat( myconfig , temp); 
+  strcat( myconfig , temp);
   strcat( myconfig, ",");
- 
+
   sprintf(temp, "%i", config.ay_offset);
-  strcat( myconfig , temp); 
+  strcat( myconfig , temp);
   strcat( myconfig, ",");
- 
+
   sprintf(temp, "%i", config.az_offset);
-  strcat( myconfig, temp); 
+  strcat( myconfig, temp);
   strcat( myconfig, ",");
 
   sprintf(temp, "%i", config.gx_offset);
-  strcat( myconfig, temp); 
-  strcat( myconfig, ","); 
-  
+  strcat( myconfig, temp);
+  strcat( myconfig, ",");
+
   sprintf(temp, "%i", config.gy_offset);
-  strcat( myconfig, temp); 
-  strcat( myconfig, ","); 
-  
+  strcat( myconfig, temp);
+  strcat( myconfig, ",");
+
   sprintf(temp, "%i", config.gz_offset);
-  strcat( myconfig, temp); 
-  strcat( myconfig, ","); 
+  strcat( myconfig, temp);
+  strcat( myconfig, ",");
 
   sprintf(temp, "%i", config.KpX);
-  strcat( myconfig, temp); 
-  strcat( myconfig, ","); 
+  strcat( myconfig, temp);
+  strcat( myconfig, ",");
 
   sprintf(temp, "%i", config.KiX);
-  strcat( myconfig, temp); 
-  strcat( myconfig, ","); 
+  strcat( myconfig, temp);
+  strcat( myconfig, ",");
 
   sprintf(temp, "%i", config.KdX);
-  strcat( myconfig, temp); 
-  strcat( myconfig, ","); 
-  
+  strcat( myconfig, temp);
+  strcat( myconfig, ",");
+
   sprintf(temp, "%i", config.KpY);
-  strcat( myconfig, temp); 
-  strcat( myconfig, ","); 
+  strcat( myconfig, temp);
+  strcat( myconfig, ",");
 
   sprintf(temp, "%i", config.KiY);
-  strcat( myconfig, temp); 
-  strcat( myconfig, ","); 
- 
+  strcat( myconfig, temp);
+  strcat( myconfig, ",");
+
   sprintf(temp, "%i", config.KdY);
-  strcat( myconfig, temp); 
-  strcat( myconfig, ","); 
-  
+  strcat( myconfig, temp);
+  strcat( myconfig, ",");
+
   sprintf(temp, "%i", config.ServoXMin);
-  strcat( myconfig, temp); 
+  strcat( myconfig, temp);
   strcat( myconfig, ",");
-  
+
   sprintf(temp, "%i", config.ServoXMax);
-  strcat( myconfig, temp); 
+  strcat( myconfig, temp);
   strcat( myconfig, ",");
-  
+
   sprintf(temp, "%i", config.ServoYMin);
-  strcat( myconfig, temp); 
+  strcat( myconfig, temp);
   strcat( myconfig, ",");
-  
+
   sprintf(temp, "%i", config.ServoYMax);
-  strcat( myconfig, temp); 
+  strcat( myconfig, temp);
   strcat( myconfig, ",");
-  
+
   sprintf(temp, "%i", config.connectionSpeed);
-  strcat( myconfig, temp); 
+  strcat( myconfig, temp);
   strcat( myconfig, ",");
 
   sprintf(temp, "%i", config.altimeterResolution);
-  strcat( myconfig, temp); 
-  strcat( myconfig, ","); 
+  strcat( myconfig, temp);
+  strcat( myconfig, ",");
 
   sprintf(temp, "%i", config.eepromSize);
-  strcat( myconfig, temp); 
+  strcat( myconfig, temp);
   strcat( myconfig, ",");
   //alti major version
   sprintf(temp, "%i", MAJOR_VERSION);
-  strcat( myconfig, temp); 
+  strcat( myconfig, temp);
   strcat( myconfig, ",");
   //alti minor version
   sprintf(temp, "%i", MINOR_VERSION);
-  strcat( myconfig, temp); 
+  strcat( myconfig, temp);
   strcat( myconfig, ",");
-  
+
   sprintf(temp, "%i", config.unit);
-  strcat( myconfig, temp); 
+  strcat( myconfig, temp);
   strcat( myconfig, ",");
 
   sprintf(temp, "%i", config.endRecordAltitude);
-  strcat( myconfig, temp); 
+  strcat( myconfig, temp);
   strcat( myconfig, ",");
- 
+
   sprintf(temp, "%i", config.beepingFrequency);
-  strcat( myconfig, temp); 
+  strcat( myconfig, temp);
   strcat( myconfig, ",");
-  
+
   sprintf(temp, "%i", config.liftOffDetect);
-  strcat( myconfig, temp); 
+  strcat( myconfig, temp);
   strcat( myconfig, ",");
-  
+
   sprintf(temp, "%i", config.gyroRange);
-  strcat( myconfig, temp); 
+  strcat( myconfig, temp);
   strcat( myconfig, ",");
-  
-    sprintf(temp, "%i", config.acceleroRange);
-  strcat( myconfig, temp); 
-  strcat( myconfig, ";\n");
-Serial1.print(myconfig);
+
+  sprintf(temp, "%i", config.acceleroRange);
+  strcat( myconfig, temp);
+  strcat( myconfig, ",");
+  unsigned int chk = msgChk(myconfig, sizeof(myconfig));
+  sprintf(temp, "%i", chk);
+  strcat(myconfig, temp);
+  strcat(myconfig, ";\n");
+  Serial1.print("$");
+  Serial1.print(myconfig);
 }
 
 
