@@ -189,7 +189,6 @@ void Mainloop(void)
 {
   long startTime = millis();
 
-
   bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
   bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
   bno.getEvent(&angVelData, Adafruit_BNO055::VECTOR_GYROSCOPE);
@@ -348,7 +347,7 @@ void MainMenu()
   char readVal = ' ';
   int i = 0;
 
-  char commandbuffer[300] = "";
+  char commandbuffer[200] = "";
 
 
   while ( readVal != ';') {
@@ -371,8 +370,8 @@ void MainMenu()
   }
 
   interpretCommandBuffer(commandbuffer);
-  for (int i = 0; i < sizeof(commandbuffer); i++)
-    commandbuffer[i] = '\0';
+  /*for (int i = 0; i < sizeof(commandbuffer); i++)
+    commandbuffer[i] = '\0';*/
 }
 /*
 
@@ -550,7 +549,11 @@ void interpretCommandBuffer(char *commandbuffer) {
   {
     Serial1.println(F("Unknown command" ));
     Serial1.println(commandbuffer[0]);
-    Serial1.println(commandbuffer);
+    //Serial1.println(commandbuffer[1]);
+    //Serial1.println(commandbuffer[2]);
+    //Serial1.print(F("command buff:" ));
+    //Serial1.print(commandbuffer);
+    //Serial1.println(F("End command buf" ));
   }
 }
 
@@ -679,7 +682,7 @@ void SendTelemetry(float * arr, int freq) {
 
   float currAltitude;
   float temperature;
-  int pressure;
+  long pressure;
 
   char myTelemetry[300] = "";
 
@@ -694,48 +697,59 @@ void SendTelemetry(float * arr, int freq) {
       //tab 1
       //GyroX
       char temp[10];
-      sprintf(temp, "%f", angVelData.gyro.x);
+      //Serial1.println(angVelData.gyro.x);
+      //sprintf(temp, "%02d", angVelData.gyro.x);
+      dtostrf(angVelData.gyro.x, 4, 2, temp);
+      //sprintf(temp, "%s", temp);
       strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //GyroY
-      sprintf(temp, "%f", angVelData.gyro.y);
+      //sprintf(temp, "%f", angVelData.gyro.y);
+      dtostrf(angVelData.gyro.y, 4, 2, temp);
       strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //GyroZ
-      sprintf(temp, "%f", angVelData.gyro.z);
+      //sprintf(temp, "%f", angVelData.gyro.z);
+      dtostrf(angVelData.gyro.z, 4, 2, temp);
       strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //AccelX
-      sprintf(temp, "%f", linearAccelData.acceleration.x);
+      //sprintf(temp, "%f", linearAccelData.acceleration.x);
+      dtostrf(linearAccelData.acceleration.x, 4, 2, temp);
       strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //AccelY
-      sprintf(temp, "%f", linearAccelData.acceleration.y);
+      //sprintf(temp, "%f", linearAccelData.acceleration.y);
+      dtostrf(linearAccelData.acceleration.y, 4, 2, temp);
       strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //AccelZ
-      sprintf(temp, "%f", linearAccelData.acceleration.z);
+      //sprintf(temp, "%f", linearAccelData.acceleration.z);
+      dtostrf(linearAccelData.acceleration.z, 4, 2, temp);
       strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //OrientX
-      sprintf(temp, "%f", orientationData.orientation.x);
+      //sprintf(temp, "%f", orientationData.orientation.x);
+      dtostrf(orientationData.orientation.x, 4, 2, temp);
       strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //OrientY
-      sprintf(temp, "%f", orientationData.orientation.z);
+      //sprintf(temp, "%f", orientationData.orientation.z);
+      dtostrf(orientationData.orientation.z, 4, 2, temp);
       strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //OrientZ
-      sprintf(temp, "%f", orientationData.orientation.y);
+      //sprintf(temp, "%f", orientationData.orientation.y);
+      dtostrf(orientationData.orientation.y, 4, 2, temp);
       strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //tab 2
       //Altitude
-      sprintf(temp, "%i", currAltitude);
+      sprintf(temp, "%i", (int) currAltitude);
       strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //temperature
-      sprintf(temp, "%i", temperature);
+      sprintf(temp, "%i", (int) temperature);
       strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //Pressure
@@ -746,7 +760,8 @@ void SendTelemetry(float * arr, int freq) {
       pinMode(PB1, INPUT_ANALOG);
       int batVoltage = analogRead(PB1);
       float bat = VOLT_DIVIDER * ((float)(batVoltage * 3300) / (float)4096000);
-      sprintf(temp, "%f", bat);
+      //sprintf(temp, "%f", bat);
+      dtostrf(bat, 4, 2, temp);
       strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
       //tab3
@@ -977,7 +992,7 @@ void SendTelemetry(float * arr, int freq) {
 
 void SendAltiConfig() {
   bool ret = readAltiConfig();
-  char myconfig [300] = "";
+  char myconfig [150] = "";
 
   strcat(myconfig , "alticonfig,");
   //AltimeterName

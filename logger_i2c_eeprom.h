@@ -25,10 +25,6 @@ struct FlightDataStruct {
   long altitude;
   long temperature;
   long pressure;
- /* char w[2];
-  char x[2];
-  char y[2];
-  char z[2];*/
   long w;
   long x;
   long y;
@@ -60,7 +56,7 @@ public:
     
     void begin();
     void clearFlightList();
-    int readFlight(int eeaddress);
+    long readFlight(long eeaddress);
     int readFlightList();
     int writeFlightList();
     int getLastFlightNbr();
@@ -84,7 +80,7 @@ public:
     //void PrintFlight(int flightNbr);
     void printFlightData(int flightNbr);
     boolean CanRecord();
-    int writeFastFlight(int eeaddress);
+    long writeFastFlight(long eeaddress);
     long getSizeOfFlightData();
     long getLastFlightEndAddress();
     

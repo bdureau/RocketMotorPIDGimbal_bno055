@@ -37,5 +37,5 @@ void floatToByte(float f, char *ret) {
     ret[i*2] = c1;
     ret[(i*2)+1] = c2;
   }
-  ret[9]='\0';
+  ret[8]='\0';
 }
