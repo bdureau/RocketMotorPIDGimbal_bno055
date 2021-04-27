@@ -25,9 +25,6 @@ bool mainLoopEnable = true;
 Servo ServoX;   // X axis Servo
 Servo ServoY;   // Y axis Servo
 
-/*float mpuPitch = 0;
-float mpuRoll = 0;
-float mpuYaw = 0;*/
 float correct;
 
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
