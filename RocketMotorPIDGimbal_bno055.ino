@@ -5,7 +5,7 @@
                 Angle changes can be monitored using a USB cable or a bluetooth interface
                 Inspired by various camera gimbal projects
    Author: Boris du Reau
-   Date: June 2018-2020
+   Date: June 2018-2021
    Sensor used is an BNO085 board
 
    You can use an Arduino Uno/Nano or stm32F103C board
@@ -48,11 +48,13 @@ int currentFileNbr = 0;
 // EEPROM start adress for the flights. Anything before that is the flight index
 long currentMemaddress = 200;
 boolean liftOff = false;
-boolean landed = true;
+boolean rocketLanded = false;
+boolean rocketApogee = false;
 //ground level altitude
 long initialAltitude;
 long liftoffAltitude = 20;
 long lastAltitude;
+long apogeeAltitude;
 //current altitude
 long currAltitude;
 bool canRecord;
@@ -63,6 +65,8 @@ unsigned long prevTime = 0;
 unsigned long diffTime;
 unsigned long currentTime = 0;
 int SX, SY;
+//nbr of measures to do so that we are sure that apogee has been reached
+unsigned long measures = 5;
 
 /* Get a new sensor event */
 sensors_event_t orientationData , linearAccelData, angVelData;
@@ -99,7 +103,7 @@ void setup()
 
   Wire.begin();
   // clock speed is important this is the only way I could get the BNO055 sensor to work with the stm32F103 board
-  Wire.setClock(400000 );
+  Wire.setClock(400000);
   /* Initialise the sensor */
   if (!bno.begin())
   {
@@ -210,6 +214,8 @@ void Mainloop(void)
   if ((lift && !liftOff) || (recording && !liftOff))
   {
     liftOff = true;
+    rocketLanded = false;
+    rocketApogee = false;
     if (recording)
       rec = true;
     // save the time
@@ -245,9 +251,9 @@ void Mainloop(void)
     logger.setFlightPressureData((long) bmp.readPressure());
 
     float w = (float)quat.w();
-    float x = (float)quat.x(); 
-    float y = (float)quat.y(); 
-    float z = (float)quat.z(); 
+    float x = (float)quat.x();
+    float y = (float)quat.y();
+    float z = (float)quat.z();
 
     logger.setFlightRocketPos((long) (w * 1000), (long) (x * 1000), (long) (y * 1000), (long) (z * 1000));
     logger.setFlightCorrection( (long) OutputX, (long)OutputY);
@@ -264,6 +270,25 @@ void Mainloop(void)
     }
   }
 
+  //detect apogee
+  if (liftOff) {
+    if (currAltitude < lastAltitude  )
+    {
+      measures = measures - 1;
+      if (measures == 0)
+      {
+        apogeeAltitude = currAltitude;
+        rocketApogee = true;
+      }
+    }
+    else
+    {
+      lastAltitude = currAltitude;
+      //number of measures to do to detect Apogee
+      measures = 5; //= config.nbrOfMeasuresForApogee;
+    }
+  }
+
   if (((canRecord && currAltitude < 10) && liftOff && !recording && !rec) || (!recording && rec))
   {
     liftOff = false;
@@ -272,9 +297,13 @@ void Mainloop(void)
     //store start and end address
     logger.setFlightEndAddress (currentFileNbr, currentMemaddress - 1);
     logger.writeFlightList();
-
   }
 
+  if ((currAltitude < 10) && rocketApogee && !recording && !rec) {
+    //landed
+    rocketLanded = true;
+    //SendTelemetry(q1, 200);
+  }
 
   // blink LED to indicate activity
   blinkState = !blinkState;
@@ -285,8 +314,8 @@ void Mainloop(void)
   //ServoY.write(OutputY + 90);
 
   /*mpuYaw = orientationData.orientation.x;
-  mpuPitch = orientationData.orientation.y;
-  mpuRoll = orientationData.orientation.z;*/
+    mpuPitch = orientationData.orientation.y;
+    mpuRoll = orientationData.orientation.z;*/
 
   InputX = orientationData.orientation.y;
   myPIDX.Compute();
@@ -401,10 +430,12 @@ void interpretCommandBuffer(char *commandbuffer) {
 #ifdef SERIAL_DEBUG
     Serial1.println(F("Erase\n"));
 #endif
-    logger.clearFlightList();
+    /*logger.clearFlightList();
     logger.writeFlightList();
     currentFileNbr = 0;
-    currentMemaddress = 201;
+    currentMemaddress = 201;*/
+
+    resetFlight();
   }
   //this will read one flight
   else if (commandbuffer[0] == 'r')
@@ -508,6 +539,10 @@ void interpretCommandBuffer(char *commandbuffer) {
   //hello
   else if (commandbuffer[0] == 'h')
   {
+    liftOff = false;
+    rocketLanded = false;
+    rocketApogee = false;
+    apogeeAltitude = 0;
     //FastReading = false;
     Serial1.print(F("$OK;\n"));
   }
@@ -549,7 +584,7 @@ void interpretCommandBuffer(char *commandbuffer) {
   {
     Serial1.println(F("Unknown command" ));
     Serial1.println(commandbuffer[0]);
-    
+
   }
 }
 
@@ -663,6 +698,34 @@ void SendTelemetry(float * arr, int freq) {
       sprintf(temp, "%i", SY);
       strcat( myTelemetry , temp);
       strcat( myTelemetry, ",");
+
+
+      //check liftoff
+      int li = 0;
+      if (liftOff)
+        li = 1;
+      sprintf(temp, "%i,", li);
+      strcat(myTelemetry, temp);
+
+      //check apogee
+      int ap = 0;
+      if (rocketApogee)
+        ap = 1;
+      sprintf(temp, "%i,", ap);
+      strcat(myTelemetry, temp);
+
+      sprintf(temp, "%i,", apogeeAltitude);
+      strcat(myTelemetry, temp);
+
+
+      int landed = 0;
+      if (rocketLanded)
+        landed = 1;
+      sprintf(temp, "%i,", landed);
+      strcat(myTelemetry, temp);
+
+      sprintf(temp, "%i,", currentTime);
+      strcat(myTelemetry, temp);
 
       unsigned int chk;
       chk = msgChk(myTelemetry, sizeof(myTelemetry));
@@ -825,4 +888,25 @@ void checkBatVoltage(float minVolt) {
     }
     delay(1000);
   }
+}
+
+/*
+
+   re-nitialise all flight related global variables
+
+*/
+void resetFlight() {
+  logger.readFlightList();
+  long lastFlightNbr = logger.getLastFlightNbr();
+  if (lastFlightNbr < 0)
+  {
+    currentFileNbr = 0;
+    currentMemaddress = 201;
+  }
+  else
+  {
+    currentMemaddress = logger.getFlightStop(lastFlightNbr) + 1;
+    currentFileNbr = lastFlightNbr + 1;
+  }
+  canRecord = logger.CanRecord();
 }
