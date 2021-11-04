@@ -277,7 +277,8 @@ void Mainloop(void)
       measures = measures - 1;
       if (measures == 0)
       {
-        apogeeAltitude = currAltitude;
+        //apogeeAltitude = currAltitude;
+        apogeeAltitude = lastAltitude;
         rocketApogee = true;
       }
     }
@@ -580,6 +581,11 @@ void interpretCommandBuffer(char *commandbuffer) {
     }
     Serial1.print(F("$OK;\n"));
   }
+  //delete last curve
+  else if (commandbuffer[0] == 'x')
+  {
+    logger.eraseLastFlight();
+  }
   else
   {
     Serial1.println(F("Unknown command" ));
@@ -725,6 +731,9 @@ void SendTelemetry(float * arr, int freq) {
       strcat(myTelemetry, temp);
 
       sprintf(temp, "%i,", currentTime);
+      strcat(myTelemetry, temp);
+
+      sprintf(temp, "%i,", logger.getLastFlightNbr() + 1 );
       strcat(myTelemetry, temp);
 
       unsigned int chk;
