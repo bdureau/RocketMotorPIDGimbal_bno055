@@ -358,6 +358,7 @@ void Mainloop(void)
   q1[3] = (float)quat.z();
 
   //serialPrintFloatArr(q1, 4);
+  currentTime = millis() - initialTime;
   SendTelemetry(q1, 200);
   checkBatVoltage(BAT_MIN_VOLTAGE);
 
@@ -394,6 +395,7 @@ void MainMenu()
       else
       {
         commandbuffer[i++] = '\0';
+        resetFlight();
         break;
       }
     }
@@ -905,6 +907,11 @@ void checkBatVoltage(float minVolt) {
 
 */
 void resetFlight() {
+  liftOff = false;
+  apogeeAltitude = 0;
+  rocketLanded = false;
+  rocketApogee = false;
+  
   logger.readFlightList();
   long lastFlightNbr = logger.getLastFlightNbr();
   if (lastFlightNbr < 0)
