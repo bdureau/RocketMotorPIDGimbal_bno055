@@ -588,6 +588,13 @@ void interpretCommandBuffer(char *commandbuffer) {
   {
     logger.eraseLastFlight();
   }
+  // send test tram
+  else if (commandbuffer[0] == 'o')
+  { 
+    Serial1.print(F("$start;\n"));
+    sendTestTram();
+    Serial1.print(F("$end;\n"));
+  }
   else
   {
     Serial1.println(F("Unknown command" ));
@@ -617,7 +624,9 @@ void SendTelemetry(float * arr, int freq) {
       pressure = bmp.readPressure();
       temperature = bmp.readTemperature();
       last_telem_time = millis();
-      strcat( myTelemetry , "telemetry,RocketMotorGimbal_bno055,");
+      strcat( myTelemetry , "telemetry,");
+      strcat( myTelemetry , BOARD_FIRMWARE);
+      strcat( myTelemetry , ",");
       //tab 1
       //GyroX
       char temp[10];
@@ -759,7 +768,8 @@ void SendAltiConfig() {
 
   strcat(myconfig , "alticonfig,");
   //AltimeterName
-  strcat(myconfig , "RocketMotorGimbal_bno055,");
+  strcat(myconfig , BOARD_FIRMWARE);
+  strcat(myconfig ,",");
   char temp [10];
   sprintf(temp, "%i", config.ax_offset);
   strcat( myconfig , temp);
@@ -868,6 +878,15 @@ void SendAltiConfig() {
   sprintf(temp, "%i", config.acceleroRange);
   strcat( myconfig, temp);
   strcat( myconfig, ",");
+
+  sprintf(temp, "%i", config.recordingTimeout);
+  strcat( myconfig, temp);
+  strcat( myconfig, ",");  
+
+  sprintf(temp, "%i", config.batteryType);
+  strcat( myconfig, temp);
+  strcat( myconfig, ","); 
+  
   unsigned int chk = msgChk(myconfig, sizeof(myconfig));
   sprintf(temp, "%i", chk);
   strcat(myconfig, temp);
@@ -925,4 +944,24 @@ void resetFlight() {
     currentFileNbr = lastFlightNbr + 1;
   }
   canRecord = logger.CanRecord();
+}
+
+/*
+    Test tram
+*/
+void sendTestTram() {
+
+  char altiTest[100] = "";
+  char temp[10] = "";
+
+  strcat(altiTest, "testTrame," );
+  strcat(altiTest, "Bear altimeters are the best!!!!,");
+  unsigned int chk;
+  chk = msgChk(altiTest, sizeof(altiTest));
+  sprintf(temp, "%i", chk);
+  strcat(altiTest, temp);
+  strcat(altiTest, ";\n");
+  Serial1.print("$");
+  Serial1.print(altiTest);
+
 }
