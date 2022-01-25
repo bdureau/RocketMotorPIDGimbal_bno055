@@ -8,7 +8,8 @@
 #include <I2Cdev.h>
 #include <PID_v1.h> // Arduino PID library
 #include <Wire.h>
-#include <BMP085_stm32.h>
+//#include <BMP085_stm32.h>
+#include "Bear_BMP085.h"
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>

@@ -32,6 +32,8 @@
   Configure the accelero and gyro range
   Change the code so that it uses the bno055 instead of the MPU6050
   Adding checksum
+  version 1.2
+  Changed pressure sensor lib
 */
 
 
@@ -67,6 +69,7 @@ unsigned long currentTime = 0;
 int SX, SY;
 //nbr of measures to do so that we are sure that apogee has been reached
 unsigned long measures = 5;
+long recordingTimeOut = 20000;
 
 /* Get a new sensor event */
 sensors_event_t orientationData , linearAccelData, angVelData;
@@ -175,6 +178,7 @@ void setup()
   }
   canRecord = logger.CanRecord();
   //canRecord = true;
+  recordingTimeOut = config.recordingTimeout * 1000;
 }
 
 
@@ -290,7 +294,7 @@ void Mainloop(void)
     }
   }
 
-  if (((canRecord && currAltitude < 10) && liftOff && !recording && !rec) || (!recording && rec))
+  if (((canRecord && currAltitude < 10) && liftOff && !recording && !rec) || (!recording && rec) || (canRecord && liftOff && !recording && !rec && (millis() - initialTime) > recordingTimeOut))
   {
     liftOff = false;
     rec = false;
@@ -298,7 +302,11 @@ void Mainloop(void)
     //store start and end address
     logger.setFlightEndAddress (currentFileNbr, currentMemaddress - 1);
     logger.writeFlightList();
+
+    if ((millis() - initialTime) > recordingTimeOut)
+      canRecord = false;
   }
+
 
   if ((currAltitude < 10) && rocketApogee && !recording && !rec) {
     //landed
@@ -427,8 +435,43 @@ void MainMenu()
       telemetry in on else turn it off
 */
 void interpretCommandBuffer(char *commandbuffer) {
+  //get all flight data
+  if (commandbuffer[0] == 'a')
+  {
+    Serial1.print(F("$start;\n"));
+    //getFlightList()
+    int i;
+    ///todo
+    for (i = 0; i < logger.getLastFlightNbr() + 1; i++)
+    {
+      logger.printFlightData(i);
+    }
+
+    Serial1.print(F("$end;\n"));
+  }
+  //get altimeter config
+  else if (commandbuffer[0] == 'b')
+  {
+    Serial1.print(F("$start;\n"));
+
+    SendAltiConfig();
+
+    Serial1.print(F("$end;\n"));
+  }
+  // calibrate the IMU
+  else if (commandbuffer[0] == 'c')
+  {
+    //not used
+    Serial1.print(F("$OK;\n"));
+  }
+  //reset alti config
+  else if (commandbuffer[0] == 'd')
+  {
+    defaultConfig();
+    writeConfigStruc();
+  }
   //this will erase all flight
-  if (commandbuffer[0] == 'e')
+  else if (commandbuffer[0] == 'e')
   {
 #ifdef SERIAL_DEBUG
     Serial1.println(F("Erase\n"));
@@ -439,6 +482,71 @@ void interpretCommandBuffer(char *commandbuffer) {
     currentMemaddress = 201;
 
     resetFlight();
+  }
+  //hello
+  else if (commandbuffer[0] == 'h')
+  {
+    liftOff = false;
+    rocketLanded = false;
+    rocketApogee = false;
+    apogeeAltitude = 0;
+    //FastReading = false;
+    Serial1.print(F("$OK;\n"));
+  }
+  //list all flights
+  else if (commandbuffer[0] == 'l')
+  {
+    Serial1.println(F("Flight List: \n"));
+    logger.printFlightList();
+  }
+  //mainloop on/off
+  else if (commandbuffer[0] == 'm')
+  {
+    if (commandbuffer[1] == '1') {
+#ifdef SERIAL_DEBUG
+      Serial1.print(F("main Loop enabled\n"));
+#endif
+      mainLoopEnable = true;
+    }
+    else {
+#ifdef SERIAL_DEBUG
+      Serial1.print(F("main loop disabled\n"));
+#endif
+      mainLoopEnable = false;
+    }
+    Serial1.print(F("$OK;\n"));
+  }
+  //Number of flight
+  else if (commandbuffer[0] == 'n')
+  {
+    Serial1.print(F("$start;\n"));
+    Serial1.print(F("$nbrOfFlight,"));
+    logger.readFlightList();
+    Serial1.print(logger.getLastFlightNbr() + 1);
+    Serial1.print(";\n");
+    Serial1.print(F("$end;\n"));
+  }
+  // send test tram
+  else if (commandbuffer[0] == 'o')
+  {
+    Serial1.print(F("$start;\n"));
+    sendTestTram();
+    Serial1.print(F("$end;\n"));
+  }
+  //altimeter config param
+  //write  config
+  else if (commandbuffer[0] == 'p')
+  {
+    if (writeAltiConfigV2(commandbuffer)) {
+      Serial1.print(F("$OK;\n"));
+    }
+    else
+      Serial1.print(F("$KO;\n"));
+  }
+  else if (commandbuffer[0] == 'q')
+  {
+    writeConfigStruc();
+    Serial1.print(F("$OK;\n"));
   }
   //this will read one flight
   else if (commandbuffer[0] == 'r')
@@ -479,76 +587,19 @@ void interpretCommandBuffer(char *commandbuffer) {
     }
     Serial1.print(F("$OK;\n"));
   }
-  //Number of flight
-  else if (commandbuffer[0] == 'n')
-  {
-    Serial1.print(F("$start;\n"));
-    Serial1.print(F("$nbrOfFlight,"));
-    logger.readFlightList();
-    Serial1.print(logger.getLastFlightNbr() + 1);
-    Serial1.print(";\n");
-    Serial1.print(F("$end;\n"));
-  }
-  //list all flights
-  else if (commandbuffer[0] == 'l')
-  {
-    Serial1.println(F("Flight List: \n"));
-    logger.printFlightList();
-  }
-  // calibrate the IMU
-  else if (commandbuffer[0] == 'c')
-  {
-    //not used
-    Serial1.print(F("$OK;\n"));
-  }
-  //get all flight data
-  else if (commandbuffer[0] == 'a')
-  {
-    Serial1.print(F("$start;\n"));
-    //getFlightList()
-    int i;
-    ///todo
-    for (i = 0; i < logger.getLastFlightNbr() + 1; i++)
-    {
-      logger.printFlightData(i);
-    }
 
-    Serial1.print(F("$end;\n"));
-  }
-  //get altimeter config
-  else if (commandbuffer[0] == 'b')
-  {
-    Serial1.print(F("$start;\n"));
 
-    SendAltiConfig();
-
-    Serial1.print(F("$end;\n"));
-  }
   //write altimeter config
   else if (commandbuffer[0] == 's')
   {
-    if (writeAltiConfig(commandbuffer))
-      Serial1.print(F("$OK;\n"));
-    else
-      Serial1.print(F("$KO;\n"));
-    commandbuffer = "";
+    /* if (writeAltiConfig(commandbuffer))
+       Serial1.print(F("$OK;\n"));
+      else
+       Serial1.print(F("$KO;\n"));
+      commandbuffer = "";*/
   }
-  //reset alti config
-  else if (commandbuffer[0] == 'd')
-  {
-    defaultConfig();
-    writeConfigStruc();
-  }
-  //hello
-  else if (commandbuffer[0] == 'h')
-  {
-    liftOff = false;
-    rocketLanded = false;
-    rocketApogee = false;
-    apogeeAltitude = 0;
-    //FastReading = false;
-    Serial1.print(F("$OK;\n"));
-  }
+
+
   //telemetry on/off
   else if (commandbuffer[0] == 'y')
   {
@@ -566,28 +617,13 @@ void interpretCommandBuffer(char *commandbuffer) {
     }
     Serial1.print(F("$OK;\n"));
   }
-  //mainloop on/off
-  else if (commandbuffer[0] == 'm')
-  {
-    if (commandbuffer[1] == '1') {
-#ifdef SERIAL_DEBUG
-      Serial1.print(F("main Loop enabled\n"));
-#endif
-      mainLoopEnable = true;
-    }
-    else {
-#ifdef SERIAL_DEBUG
-      Serial1.print(F("main loop disabled\n"));
-#endif
-      mainLoopEnable = false;
-    }
-    Serial1.print(F("$OK;\n"));
-  }
+
   //delete last curve
   else if (commandbuffer[0] == 'x')
   {
     logger.eraseLastFlight();
   }
+
   else
   {
     Serial1.println(F("Unknown command" ));
@@ -617,7 +653,9 @@ void SendTelemetry(float * arr, int freq) {
       pressure = bmp.readPressure();
       temperature = bmp.readTemperature();
       last_telem_time = millis();
-      strcat( myTelemetry , "telemetry,RocketMotorGimbal_bno055,");
+      strcat( myTelemetry , "telemetry,");
+      strcat( myTelemetry , BOARD_FIRMWARE);
+      strcat( myTelemetry , ",");
       //tab 1
       //GyroX
       char temp[10];
@@ -759,7 +797,8 @@ void SendAltiConfig() {
 
   strcat(myconfig , "alticonfig,");
   //AltimeterName
-  strcat(myconfig , "RocketMotorGimbal_bno055,");
+  strcat(myconfig , BOARD_FIRMWARE);
+  strcat(myconfig , ",");
   char temp [10];
   sprintf(temp, "%i", config.ax_offset);
   strcat( myconfig , temp);
@@ -868,6 +907,15 @@ void SendAltiConfig() {
   sprintf(temp, "%i", config.acceleroRange);
   strcat( myconfig, temp);
   strcat( myconfig, ",");
+
+  sprintf(temp, "%i", config.recordingTimeout);
+  strcat( myconfig, temp);
+  strcat( myconfig, ",");
+
+  sprintf(temp, "%i", config.batteryType);
+  strcat( myconfig, temp);
+  strcat( myconfig, ",");
+
   unsigned int chk = msgChk(myconfig, sizeof(myconfig));
   sprintf(temp, "%i", chk);
   strcat(myconfig, temp);
@@ -911,7 +959,7 @@ void resetFlight() {
   apogeeAltitude = 0;
   rocketLanded = false;
   rocketApogee = false;
-  
+
   logger.readFlightList();
   long lastFlightNbr = logger.getLastFlightNbr();
   if (lastFlightNbr < 0)
@@ -925,4 +973,24 @@ void resetFlight() {
     currentFileNbr = lastFlightNbr + 1;
   }
   canRecord = logger.CanRecord();
+}
+
+/*
+    Test tram
+*/
+void sendTestTram() {
+
+  char altiTest[100] = "";
+  char temp[10] = "";
+
+  strcat(altiTest, "testTrame," );
+  strcat(altiTest, "Bear altimeters are the best!!!!,");
+  unsigned int chk;
+  chk = msgChk(altiTest, sizeof(altiTest));
+  sprintf(temp, "%i", chk);
+  strcat(altiTest, temp);
+  strcat(altiTest, ";\n");
+  Serial1.print("$");
+  Serial1.print(altiTest);
+
 }
