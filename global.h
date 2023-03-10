@@ -9,16 +9,40 @@
 #include <PID_v1.h> // Arduino PID library
 #include <Wire.h>
 //#include <BMP085_stm32.h>
-#include "Bear_BMP085.h"
+//#include "Bear_BMP085.h"
+
+// choose the pressure sensor that you are using
+// for most board the pressure sensor is either BMP085 or BMP180 
+// note that BMP085 and 180 are compatible no need to use the new BMP180 library
+//#define BMP085_180
+
+// if you have a custom board using a BMP280 pressure sensor 
+#define BMP280
+
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
+
+#ifdef BMP085_180
+#include "Bear_BMP085.h"
+BMP085 bmp;
+#endif
+
+#ifdef BMP280
+//#include <BMP280.h>
+#include <Adafruit_BMP280.h>
+#define P0 1013.25
+//BMP280 bmp;
+Adafruit_BMP280 bmp;
+#endif
+
+
 
 /* Set the delay between fresh samples */
 uint16_t BNO055_SAMPLERATE_DELAY_MS = 100;
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x29);
-BMP085 bmp;
+//BMP085 bmp;
 bool blinkState = true;
 bool telemetryEnable = false;
 bool mainLoopEnable = true;

@@ -78,11 +78,47 @@ sensors_event_t orientationData , linearAccelData, angVelData;
    ReadAltitude()
    Read altitude and filter any nose with a Kalman filter
 */
+/*double ReadAltitude()
+{
+  return KalmanCalc(bmp.readAltitude());
+}*/
+
+#ifdef BMP085_180
+/*
+   ReadAltitude()
+   Read Altitude function for a BMP85 or 180 Bosch sensor
+
+*/
 double ReadAltitude()
 {
   return KalmanCalc(bmp.readAltitude());
+  //return bmp.readAltitude();
 }
+#endif
 
+#ifdef BMP280
+/*
+
+   Read Altitude function for a BMP280 Bosch sensor
+
+
+*/
+double ReadAltitude()
+{
+  /*double T, P, A;
+  char result = bmp.startMeasurment();
+  if (result != 0) {
+    delay(result);
+    result = bmp.getTemperatureAndPressure(T, P);
+    A = KalmanCalc(bmp.altitude(P, P0));
+  }
+  return A;*/
+  return KalmanCalc(bmp.readAltitude(1013.25));
+  
+  
+  
+}
+#endif
 
 /*
    Initial setup
@@ -928,7 +964,11 @@ void SendAltiConfig() {
   sprintf(temp, "%i", config.batteryType);
   strcat( myconfig, temp);
   strcat( myconfig, ",");
-
+  
+  sprintf(temp, "%i", config.telemetryType);
+  strcat( myconfig, temp);
+  strcat( myconfig, ",");
+  
   unsigned int chk = msgChk(myconfig, sizeof(myconfig));
   sprintf(temp, "%i", chk);
   strcat(myconfig, temp);

@@ -2,7 +2,7 @@
 #define _CONFIG_H
 
 #define MAJOR_VERSION 1
-#define MINOR_VERSION 2
+#define MINOR_VERSION 3
 
 #define BOARD_FIRMWARE  "RocketMotorGimbal_bno055"
 #define CONFIG_START 32
@@ -50,6 +50,7 @@ struct ConfigStruct {
   int acceleroRange;
   int recordingTimeout;
   int batteryType;
+  int telemetryType;
   int cksum;
 };
 extern ConfigStruct config;
