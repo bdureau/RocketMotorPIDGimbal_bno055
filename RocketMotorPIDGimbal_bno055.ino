@@ -5,7 +5,7 @@
                 Angle changes can be monitored using a USB cable or a bluetooth interface
                 Inspired by various camera gimbal projects
    Author: Boris du Reau
-   Date: June 2018-2021
+   Date: June 2018-2023
    Sensor used is an BNO085 board
 
    You can use an Arduino Uno/Nano or stm32F103C board
@@ -34,6 +34,8 @@
   Adding checksum
   version 1.2
   Changed pressure sensor lib
+  version 1.3
+  Adding the BMP280 sensor
 */
 
 
