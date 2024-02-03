@@ -1,4 +1,4 @@
-# RocketMotorPIDGimbal BNO055
+# RocketMotorPIDGimbal BNO055 (firware)
 This is another rocket Gimbal that is using a bno055 sensor instead of the MPU6050
 It looks a lot more stable and a lot easier to use. No interupt, no buffer overflow etc..
 I am redesining a board
